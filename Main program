@@ -1,0 +1,199 @@
+
+def date_same_or_later(day1, month1, day2, month2):
+    '''Checks if the previous inputed dates which are day1 and monht 1 are the same or newer then the current inputed dates and if they are returns false so purchase doesnt go through'''
+    if day1 == day2 and month1 == month2:
+        return True
+    if month1 > month2:
+        return True
+    if month1 == month2 and day1  > day2:
+        return True
+
+    return False
+
+def all_three_different(c1, c2, c3):
+    '''Checks if the last three inputed countries are all different and if they are all differnet returns true so that card locks in purhcase function'''
+    if c1 != c2 and c2 != c3 and c3 != c1:
+        return True
+    else:
+        return False
+
+def purchase(amount, day, month, country):
+    '''test if card is lokced and if so ends process, test if its the thrid different country and if it is locks card and ends process, also test if day is same or old and if it is ends process. If all those arent true then it checks if it should convert old balance to appreciating balance due to change of month. If not it adds money to the regular balance'''
+    global balance, balance_apreciating_interest, locked, previous_country, previous_previous_country, previous_month, previous_day, n
+    if locked:
+        return "error"
+    elif all_three_different(country, previous_country, previous_previous_country):
+        locked = True
+        return "error"
+    elif date_same_or_later(day, month, previous_day, previous_month) != True:
+        return "error"
+
+    if month > previous_month:
+        interest(month)
+
+    balance += amount
+
+
+    if n == 1:
+        previous_country = country
+        previous_previous_country = country
+        n -= 1
+    else:
+        previous_previous_country = previous_country
+        previous_country = country
+
+
+    previous_day = day
+    previous_month = month
+
+
+
+def amount_owed(day, month):
+    '''checks if a function has already occured that day and if so retunrs error if not it chekcs if month changed and if it has it add intererst and then adds balance and interest balnce to get amount owed. returns amount owed'''
+    global owed, balance, balance_apreciating_interest, previous_day, previous_month
+
+    if date_same_or_later(day, month, previous_day, previous_month) != True:
+        return "error"
+
+    if month > previous_month:
+        interest(month)
+
+    owed = balance + balance_apreciating_interest
+
+    previous_day = day
+    previous_month = month
+    return owed
+
+
+def pay_bill(amount, day, month):
+    '''checks if function has already occured that day then runs amount owed function to get the right amount owed for that day then checks if amount is bigger or equal to amount owed and deals and if yes adjust balance and srts other variables 0 if no it checks if maount is bigger then interest amount if yes it adjust balance and sets other variables to zero if not it reduces interest amount'''
+    global balance, balance_apreciating_interest, owed, previous_month, previous_day
+
+    if date_same_or_later(day, month, previous_day, previous_month) != True:
+        return "error"
+
+    amount_owed(day, month)
+
+    if amount >= owed:
+        balance = balance - (amount - balance_apreciating_interest)
+        balance_apreciating_interest = 0
+        owed = 0
+    elif amount >= balance_apreciating_interest:
+        balance = balance - (amount - balance_apreciating_interest)
+        balance_apreciating_interest = 0
+        owed = 0
+    else:
+        balance_apreciating_interest = balance_apreciating_interest - amount
+        owed = 0
+
+    previous_day = day
+    previous_month = month
+
+
+def interest(month):
+    '''Calculates the new balance interest amount based off amount of months that has past and gets rid of the old balance'''
+    global balance, balance_apreciating_interest, previous_month
+
+    m = month - previous_month
+    acuring = balance
+
+    if m > 1:
+        for i in range(m):
+            balance_apreciating_interest = 1.05*balance_apreciating_interest
+        for i in range(m - 1):
+            acuring = 1.05 * acuring
+        balance_apreciating_interest += acuring
+    else:
+        balance_apreciating_interest = balance_apreciating_interest*1.05
+        balance_apreciating_interest += balance
+
+
+    balance = 0
+
+
+
+def initialize():
+    '''Initializes the fucntion by setting all the vraibles to zero so you can run the code over and over without having old variables stay'''
+    global balance, balance_apreciating_interest, owed, locked, previous_day, previous_country, previous_month, previous_previous_country, n
+    balance = 0
+    balance_apreciating_interest = 0
+    owed = 0
+    locked = False
+    previous_country = "country"
+    previous_previous_country= "country"
+    previous_month = 1
+    previous_day = 1
+    n = 1
+
+
+balance = 0
+balance_apreciating_interest = 0
+owed = 0
+locked = False
+previous_country = "country"
+previous_previous_country= "country"
+previous_month = 1
+previous_day = 1
+n = 1
+
+
+initialize()
+
+if __name__ == "__main__":
+    initialize()
+    ##test countries and lockout
+    # makes purchases in tbree different ocuntires but shouldnt lock card as they never happen so that there is three diferent countires in a row.
+    purchase(80, 4, 1, "Canada")
+    purchase(20, 6, 1, "Canada")
+    purchase(20, 7, 1, "America")
+    purchase(20, 8, 1, "America")
+    purchase(30, 9, 1, "France")
+    if locked == False:
+        print("test passed")
+    else:
+        print("test failed")
+
+
+    # should lock card as three different contries appear
+    initialize()
+    purchase(20, 10, 1, "Canada")
+    purchase(20, 11, 1, "Taiwan")
+    purchase(20, 12, 1, "Canada")
+    purchase(20, 14, 1, "France")
+    if locked == True:
+        print("test passed")
+    else:
+        print("test failed")
+
+
+    # checks if interest is applied properly over sevral monhts, and then test if it works with multile purchases over sveral months
+    initialize()
+    purchase(20, 1, 1, "Canada")
+    purchase(30, 2, 1, "Canada")
+    if amount_owed(1,8) == (50 * (1.05**6)):
+        print("Test passed")
+    else:
+        print("Test failed")
+    purchase(50, 3, 8, "United States")
+    purchase(15, 4, 9, "Canada")
+    if amount_owed(29, 11) == ((50 * (1.05**9))+((50 * 1.05**2))+(15*1.05)):
+        print("test passed")
+    else:
+        print("test failed")
+    print(amount_owed(29,11))
+
+    # checks if it will not let purhcase go through if it happnes after a time a function ahs already been done
+    purchase(2, 1, 1, "canada")
+    pay_bill(2, 25, 1)
+    purchase(5, 7, 1, "canada")
+    if amount_owed(27, 1) == 0:
+        print("test passed")
+    else:
+        print("test failed")
+
+# I checked if card didnt lokc even if over time three different countires appeared, then chekc if card locks properly, then checked to make sure interest worked properly over many months with purhcases in between. Then I checked if the code would not let transactions thorugh if they happned at a date that was back in time.
+
+
+
+
+
